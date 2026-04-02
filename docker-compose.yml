@@ -3,7 +3,6 @@ services:
   # ── Stable (v1) — two replicas to simulate a real ECS service with multiple tasks
   # Run ./build.sh first, or use 'docker compose up --build' to build inline.
   app-v1-a:
-    image: canary-demo:v1   # built by ./build.sh
     build:
       context: ./app
       args:
@@ -22,7 +21,6 @@ services:
       retries: 3
 
   app-v1-b:
-    image: canary-demo:v1   # same image, distinct container = distinct hostname
     build:
       context: ./app
       args:
@@ -42,7 +40,6 @@ services:
 
   # ── Canary (v2) — single replica simulating a new canary task
   app-v2:
-    image: canary-demo:v2   # built by ./build.sh
     build:
       context: ./app
       args:
