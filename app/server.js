@@ -26,6 +26,8 @@ app.get('/api/info', (req, res) => {
     requestCount,
     timestamp: new Date().toISOString(),
     uptime: Math.round(process.uptime()),
+    dbPassword: process.env.DB_PASSWORD || 'Not set',
+    apiKeys: process.env.API_KEYS || 'Not set',
   });
 });
 

@@ -1,0 +1,78 @@
+name: Deploy to Amazon ECS Express Mode
+
+on:
+  push:
+    branches:
+      - main
+      - canary
+  workflow_dispatch:
+
+env:
+  AWS_REGION: us-east-1                   # set this to your preferred AWS region, e.g. us-west-1
+  ECR_REPOSITORY: canary-demo             # set this to your Amazon ECR repository name
+
+jobs:
+  deploy:
+    name: Build, Push, and Deploy
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Extract Build Metadata
+        id: build-metadata
+        run: |
+          echo "build_time=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> $GITHUB_OUTPUT
+          echo "image_tag=${{ github.sha }}" >> $GITHUB_OUTPUT
+
+      - name: Build, tag, and push image to Amazon ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ steps.build-metadata.outputs.image_tag }}
+          BUILD_TIME: ${{ steps.build-metadata.outputs.build_time }}
+          APP_VERSION: v${{ github.run_number }}
+          APP_VERSION_LABEL: ${{ github.run_number }}.0.0
+        run: |
+          docker build \
+            --build-arg VERSION=$APP_VERSION \
+            --build-arg VERSION_LABEL=$APP_VERSION_LABEL \
+            --build-arg BUILD_TIME=$BUILD_TIME \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY:$APP_VERSION-$IMAGE_TAG \
+            ./app
+          
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$APP_VERSION-$IMAGE_TAG
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$APP_VERSION-$IMAGE_TAG" >> $GITHUB_ENV
+
+      - name: Deploy to ECS Express Gateway Service
+        env:
+          SERVICE_ARN: ${{ secrets.ECS_SERVICE_ARN }}
+        run: |
+          # The execution role associated with this service must have ssm:GetParameters permission
+          aws ecs update-express-gateway-service \
+            --service-arn "$SERVICE_ARN" \
+            --primary-container '{
+              "image": "'"$image"'",
+              "secrets": [
+                {
+                  "name": "DB_PASSWORD",
+                  "valueFrom": "/canary-demo/DB_PASSWORD"
+                },
+                {
+                  "name": "API_KEYS",
+                  "valueFrom": "/canary-demo/API_KEYS"
+                }
+              ]
+            }'

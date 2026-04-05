@@ -626,6 +626,14 @@
         <div class="meta-label">Response Time</div>
         <div class="meta-value" id="responseTime">—</div>
       </div>
+      <div class="meta-item">
+        <div class="meta-label">DB Password</div>
+        <div class="meta-value" id="dbPassword">—</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">API Keys</div>
+        <div class="meta-value" id="apiKeys">—</div>
+      </div>
     </div>
   </div>
 
@@ -723,6 +731,8 @@
   const uptimeEl        = $('uptime');
   const reqCountEl      = $('reqCount');
   const responseTimeEl  = $('responseTime');
+  const dbPasswordEl    = $('dbPassword');
+  const apiKeysEl       = $('apiKeys');
   const v1Bar           = $('v1Bar');
   const v2Bar           = $('v2Bar');
   const v1Pct           = $('v1Pct');
@@ -788,6 +798,8 @@
     uptimeEl.textContent     = formatUptime(data.uptime);
     reqCountEl.textContent   = `${data.requestCount.toLocaleString()} req${data.requestCount !== 1 ? 's' : ''}`;
     responseTimeEl.textContent = `${ms} ms`;
+    dbPasswordEl.textContent = data.dbPassword;
+    apiKeysEl.textContent = data.apiKeys;
 
     lastUpdated.textContent  = 'Last updated: ' + new Date().toLocaleTimeString();
 
